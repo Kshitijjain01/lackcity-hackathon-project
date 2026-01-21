@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getTriageResult } from '../utils/openai'
 
 export default function Interaction() {
+  const navigate = useNavigate()
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null) // { specialist: "", urgency: "" }
@@ -171,8 +173,15 @@ export default function Interaction() {
             </div>
 
             <button
+              onClick={() => navigate('/maps', { state: { triageResult: result } })}
+              className="mt-6 w-full rounded-xl bg-sky-500 py-3 text-sm font-medium text-white shadow-lg shadow-sky-500/25 transition-colors hover:bg-sky-400"
+            >
+              Find Nearby Facilities
+            </button>
+
+            <button
               onClick={() => { setResult(null); setInput(''); }}
-              className="mt-6 w-full rounded-xl bg-white/10 py-3 text-sm font-medium text-white/80 ring-1 ring-white/15 transition-colors hover:bg-white/15"
+              className="mt-3 w-full rounded-xl bg-white/10 py-3 text-sm font-medium text-white/80 ring-1 ring-white/15 transition-colors hover:bg-white/15"
             >
               Check another symptom
             </button>
