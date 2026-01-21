@@ -1,69 +1,90 @@
-// Gemini API utility for medical triage
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+// OpenRouter API utility for medical triage
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 
 export async function getTriageResult(symptoms) {
-  if (!GEMINI_API_KEY) {
-    throw new Error('Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your .env file.')
+  if (!OPENROUTER_API_KEY) {
+    throw new Error('OpenRouter API key is not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.')
   }
+const systemPrompt = `
+You are an AI medical triage assistant for a healthcare routing system.
+You must NOT diagnose diseases or conditions.
 
-  const prompt = `You are a medical triage assistant. 
-Do NOT diagnose. 
-Only suggest the most suitable medical specialist and urgency level.
+Your task is to convert symptoms into routing information for hospitals and doctors.
 
-User symptoms:
-"${symptoms}"
-
-Return JSON only in this format:
+Return ONLY a valid JSON object in this exact format:
 {
   "specialist": "",
-  "urgency": ""
+  "department": "",
+  "urgency": "",
+  "facility_type": "",
+  "search_keywords": [],
+  "emergency_required": false
 }
 
-Urgency must be one of:
-- normal
-- urgent
-- emergency
+Field meaning:
+- specialist: doctor type (e.g., Cardiologist, General Physician, Neurologist, Dermatologist)
+- department: hospital department name used in searches (e.g., Cardiology, Emergency, Pediatrics)
+- urgency:
+  - "normal"
+  - "urgent"
+  - "emergency"
+- facility_type:
+  - "clinic"
+  - "hospital"
+  - "emergency_room"
+- search_keywords: array of keywords to feed into Google Maps search
+  Example: ["cardiology hospital", "heart specialist", "emergency care"]
+- emergency_required:
+  - true if urgency is "emergency"
+  - false otherwise
 
-Return only valid JSON, no markdown or extra text.`
+Rules:
+- Do NOT diagnose.
+- Do NOT name any diseases.
+- Do NOT suggest medicine or treatment.
+- Do NOT explain anything.
+- Do NOT add extra fields.
+- Do NOT write anything outside JSON.
+- Make output optimized for Google Maps search queries.
+`;
+
+
+  const userPrompt = `User symptoms: "${symptoms}"`
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Lackecity Medical Triage',
       },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
+        model: 'openai/gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
         ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 150,
-        },
+        temperature: 0.3,
+        max_tokens: 150,
       }),
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      console.error('Gemini API error response:', data)
-      const errorMsg = data.error?.message || `Gemini API error: ${response.status}`
+      console.error('OpenRouter API error response:', data)
+      const errorMsg = data.error?.message || `OpenRouter API error: ${response.status}`
       throw new Error(errorMsg)
     }
 
-    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+    if (!data.choices || !data.choices[0]?.message?.content) {
       console.error('Unexpected API response format:', data)
-      throw new Error('Unexpected response format from Gemini API')
+      throw new Error('Unexpected response format from OpenRouter API')
     }
 
-    const content = data.candidates[0].content.parts[0].text.trim()
+    const content = data.choices[0].message.content.trim()
     
     // Remove markdown code blocks if present
     let jsonString = content
@@ -76,10 +97,14 @@ Return only valid JSON, no markdown or extra text.`
     
     return {
       specialist: result.specialist || 'General Practitioner',
+      department: result.department || 'General Medicine',
       urgency: result.urgency || 'normal',
+      facility_type: result.facility_type || 'hospital',
+      search_keywords: result.search_keywords || [],
+      emergency_required: result.emergency_required || false,
     }
   } catch (error) {
-    console.error('Error calling Gemini:', error)
+    console.error('Error calling OpenRouter:', error)
     throw error
   }
 }

@@ -135,10 +135,22 @@ export default function Interaction() {
           <div className="mt-8 w-full max-w-md rounded-2xl bg-white/10 p-6 ring-1 ring-white/15 backdrop-blur-sm">
             <h2 className="mb-4 text-center text-lg font-semibold text-white">Triage Result</h2>
             
-            <div className="space-y-4">
+            {/* Emergency Alert */}
+            {result.emergency_required && (
+              <div className="mb-4 rounded-xl bg-red-500/20 p-4 text-center ring-1 ring-red-500/30">
+                <span className="text-lg font-bold text-red-400">⚠️ Emergency Care Required</span>
+              </div>
+            )}
+            
+            <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl bg-white/5 p-4">
                 <span className="text-white/70">Specialist</span>
                 <span className="font-semibold text-indigo-300">{result.specialist}</span>
+              </div>
+              
+              <div className="flex items-center justify-between rounded-xl bg-white/5 p-4">
+                <span className="text-white/70">Department</span>
+                <span className="font-semibold text-sky-300">{result.department}</span>
               </div>
               
               <div className="flex items-center justify-between rounded-xl bg-white/5 p-4">
@@ -150,6 +162,11 @@ export default function Interaction() {
                 }`}>
                   {result.urgency}
                 </span>
+              </div>
+              
+              <div className="flex items-center justify-between rounded-xl bg-white/5 p-4">
+                <span className="text-white/70">Facility Type</span>
+                <span className="font-semibold capitalize text-purple-300">{result.facility_type?.replace('_', ' ')}</span>
               </div>
             </div>
 
